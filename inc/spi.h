@@ -38,4 +38,15 @@ void spi_write(uint8_t addr, uint8_t data);
  */
 uint8_t spi_read(uint8_t addr);
 
+/**
+ * @brief Reads from two registers on a SPI device
+ *
+ * Assumes the first register is the LSB
+ *
+ * @param addr The address of the register
+ *
+ * @return The returned data
+ */
+uint16_t spi_read_double(uint8_t addr);
+
 #endif /* __SPI_H__ */
