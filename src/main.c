@@ -25,6 +25,7 @@
 #include "msp.h"
 #include "uart.h"
 #include "spi.h"
+#include "circbuf.h"
 
 void main(void)
 {
