@@ -17,4 +17,23 @@
 #define BEGIN_CRITICAL_SECTION() __disable_irq()
 #define END_CRITICAL_SECTION() __enable_irq()
 
+#define BASE_2 (2)
+#define BASE_8 (8)
+#define BASE_10 (10)
+#define BASE_16 (16)
+
+/**
+ * @brief Converts integers to ASCII strings
+ *
+ * Converts an integer of a given base to an ASCII string,
+ * and stores the string at a given address.
+ *
+ * @param data The integer to convert
+ * @param ptr Pointer to the location for the string
+ * @param base The base of the given integer
+ *
+ * @return The length of the ASCII string
+ */
+uint8_t my_itoa(int32_t data, uint8_t * ptr, uint32_t base);
+
 #endif /* __HELPERS_H__ */
