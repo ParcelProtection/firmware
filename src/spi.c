@@ -30,7 +30,7 @@ void spi_init()
                     EUSCI_B_CTLW0_SSEL__SMCLK | /* SMCLK as source */
                     EUSCI_B_CTLW0_STEM | /* CS used to enable */
                     EUSCI_B_CTLW0_SWRST; /* stay disabled */
-  EUSCI_B0->BRW = 0x10; /* bring the clock down a bit */
+  EUSCI_B0->BRW = 0x40; /* bring the clock down a bit */
   EUSCI_B0->CTLW0 &= ~(EUSCI_B_CTLW0_SWRST); /* enable */
 }
 
@@ -44,11 +44,11 @@ void spi_write(uint8_t addr, uint8_t data)
 
   /* send address and write bit */
   EUSCI_B0->TXBUF = ~BIT7 & addr;
-  while(EUSCI_B0->STATW & EUSCI_B_STATW_SPI_BUSY);
+  while(!(EUSCI_B0->IFG & EUSCI_B_IFG_TXIFG));
 
   /* send data */
   EUSCI_B0->TXBUF = data;
-  while(EUSCI_B0->STATW & EUSCI_B_STATW_SPI_BUSY);
+  while(!(EUSCI_B0->IFG & EUSCI_B_IFG_TXIFG));
 
   /* deselect chip */
   P3->OUT |= BIT0;
@@ -64,11 +64,11 @@ uint8_t spi_read(uint8_t addr)
 
   /* send address and read bit */
   EUSCI_B0->TXBUF = BIT7 | addr;
-  while(EUSCI_B0->STATW & EUSCI_B_STATW_SPI_BUSY);
+  while(!(EUSCI_B0->IFG & EUSCI_B_IFG_TXIFG));
 
   /* send blank byte */
   EUSCI_B0->TXBUF = 0;
-  while(EUSCI_B0->STATW & EUSCI_B_STATW_SPI_BUSY);
+  while(!(EUSCI_B0->IFG & EUSCI_B_IFG_RXIFG));
 
   /* deselect chip */
   P3->OUT |= BIT0;
@@ -88,12 +88,16 @@ uint16_t spi_read_double(uint8_t addr)
 
   /* send address, read bit, and multiple access bit */
   EUSCI_B0->TXBUF = BIT7 | BIT6 | addr;
-  while(EUSCI_B0->STATW & EUSCI_B_STATW_SPI_BUSY);
+  while(!(EUSCI_B0->IFG & EUSCI_B_IFG_TXIFG));
+
+  /* send blank byte */
+  EUSCI_B0->TXBUF = 0;
+  while(!(EUSCI_B0->IFG & (EUSCI_B_IFG_TXIFG | EUSCI_B_IFG_RXIFG)));
   temp = EUSCI_B0->RXBUF;
 
   /* send blank byte */
   EUSCI_B0->TXBUF = 0;
-  while(EUSCI_B0->STATW & EUSCI_B_STATW_SPI_BUSY);
+  while(!(EUSCI_B0->IFG & EUSCI_B_IFG_RXIFG));
 
   /* deselect chip */
   P3->OUT |= BIT0;
