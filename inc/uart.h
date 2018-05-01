@@ -60,6 +60,15 @@ void uart1_send(uint8_t data);
 void uart1_send_str(uint8_t * data);
 
 /**
+ * @brief sends an integer over UART1
+ *
+ * @param data The integer to send
+ *
+ * @return none
+ */
+void uart1_send_int(int32_t data);
+
+/**
  * @brief sends a byte over the on-chip UART
  *
  * @param data The byte to send
@@ -105,6 +114,18 @@ __attribute__((always_inline)) inline void bt_send(uint8_t data)
 __attribute__((always_inline)) inline void bt_send_str(uint8_t * data)
 {
   uart1_send_str(data);
+}
+
+/**
+ * @brief sends an integer over Bluetooth
+ *
+ * @param data The integer to send
+ *
+ * @return none
+ */
+__attribute__((always_inline)) inline void bt_send_int(int32_t data)
+{
+  uart1_send_int(data);
 }
 
 #endif /* __UART_H__ */
