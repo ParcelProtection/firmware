@@ -49,9 +49,39 @@
  *
  * @return device ID
  */
-__attribute__((always_inline)) inline uint8_t get_dev_id()
+__attribute__((always_inline)) inline uint8_t adxl_get_dev_id()
 {
   return spi_read(ADDR_DEVID);
+}
+
+/**
+ * @brief get x-axis
+ *
+ * @return x-axis
+ */
+__attribute__((always_inline)) inline int16_t adxl_get_x()
+{
+  return spi_read_double(ADDR_DATAX0);
+}
+
+/**
+ * @brief get y-axis
+ *
+ * @return y-axis
+ */
+__attribute__((always_inline)) inline int16_t adxl_get_y()
+{
+  return spi_read_double(ADDR_DATAY0);
+}
+
+/**
+ * @brief get z-axis
+ *
+ * @return z-axis
+ */
+__attribute__((always_inline)) inline int16_t adzl_get_x()
+{
+  return spi_read_double(ADDR_DATAZ0);
 }
 
 #endif /* __ADXL345_H__ */

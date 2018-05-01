@@ -75,3 +75,28 @@ uint8_t spi_read(uint8_t addr)
 
   return EUSCI_B0->RXBUF;
 }
+
+uint16_t spi_read_double(uint8_t addr)
+{
+  uint8_t temp;
+
+  /* wait for idle */
+  while(EUSCI_B0->STATW & EUSCI_B_STATW_SPI_BUSY);
+
+  /* select chip */
+  P3->OUT &= ~(BIT0);
+
+  /* send address, read bit, and multiple access bit */
+  EUSCI_B0->TXBUF = BIT7 | BIT6 | addr;
+  while(EUSCI_B0->STATW & EUSCI_B_STATW_SPI_BUSY);
+  temp = EUSCI_B0->RXBUF;
+
+  /* send blank byte */
+  EUSCI_B0->TXBUF = 0;
+  while(EUSCI_B0->STATW & EUSCI_B_STATW_SPI_BUSY);
+
+  /* deselect chip */
+  P3->OUT |= BIT0;
+
+  return (EUSCI_B0->RXBUF << 8) | temp;
+}
