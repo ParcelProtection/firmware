@@ -12,6 +12,7 @@
  */
 
 #include "msp.h"
+#include "helpers.h"
 #include "uart.h"
 
 void uart_init()
@@ -79,4 +80,11 @@ void uart1_send_str(uint8_t * data)
 
     EUSCI_A2->TXBUF = *(data + i);
   }
+}
+
+void uart1_send_int(int32_t data)
+{
+  uint8_t conversion_buf[12];
+  my_itoa(data, conversion_buf, BASE_16);
+  uart1_send_str(conversion_buf);
 }
