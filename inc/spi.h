@@ -33,10 +33,9 @@ void spi_write(uint8_t addr, uint8_t data);
  * @brief Reads from a register on a SPI device
  *
  * @param addr The address of the register
- * @param data A pointer to store the returned data
  *
- * @return none
+ * @return The returned data
  */
-void spi_read(uint8_t addr, uint8_t * data);
+uint8_t spi_read(uint8_t addr);
 
 #endif /* __SPI_H__ */
