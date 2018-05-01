@@ -24,12 +24,14 @@
 
 #include "msp.h"
 #include "uart.h"
+#include "spi.h"
 
 void main(void)
 {
   WDT_A->CTL = WDT_A_CTL_PW | WDT_A_CTL_HOLD; /* stop watchdog timer */
 
   uart_init();
+  spi_init();
 
   while(1);
 }
