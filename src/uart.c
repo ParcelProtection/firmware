@@ -49,10 +49,34 @@ void uart0_send(uint8_t data)
   EUSCI_A0->TXBUF = data;
 }
 
+void uart0_send_str(uint8_t * data)
+{
+  uint32_t i;
+  for(i = 0; *(data + i); i++)
+  {
+    /* wait for UART to be idle */
+    while(!(EUSCI_A0->IFG & EUSCI_A_IFG_TXIFG));
+
+    EUSCI_A0->TXBUF = *(data + i);
+  }
+}
+
 void uart1_send(uint8_t data)
 {
   /* wait for UART to be idle */
   while(!(EUSCI_A2->IFG & EUSCI_A_IFG_TXIFG));
 
   EUSCI_A2->TXBUF = data;
+}
+
+void uart1_send_str(uint8_t * data)
+{
+  uint32_t i;
+  for(i = 0; *(data + i); i++)
+  {
+    /* wait for UART to be idle */
+    while(!(EUSCI_A2->IFG & EUSCI_A_IFG_TXIFG));
+
+    EUSCI_A2->TXBUF = *(data + i);
+  }
 }

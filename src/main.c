@@ -27,12 +27,43 @@
 #include "spi.h"
 #include "circbuf.h"
 
+void gpio_init()
+{
+  P4->SEL0 &= !(BIT5 | BIT4 | BIT0); /* GPIO mode */
+  P4->SEL1 &= !(BIT5 | BIT4 | BIT0);
+  P4->DIR &= !(BIT5 | BIT4 | BIT0); /* configure as inputs */
+  P4->REN |= BIT0; /* enable pullup/down resistor */
+  P4->OUT |= BIT0; /* pullup resistor */
+  P4->IES &= ~(BIT5 | BIT4); /* interrupt on low to high transition */
+  P4->IES |= BIT0; /* interrupt on high to low transition */
+  P4->IE |= 0; /* enable interrupts */
+  NVIC_EnableIRQ(PORT4_IRQn);
+  __enable_interrupts();
+}
+
 void main(void)
 {
   WDT_A->CTL = WDT_A_CTL_PW | WDT_A_CTL_HOLD; /* stop watchdog timer */
 
   uart_init();
   spi_init();
+  gpio_init();
 
   while(1);
+}
+
+void PORT4_IRQHandler()
+{
+  if(P4->IFG & BIT0)
+  {
+    P4->IFG &= ~(BIT0);
+  }
+  if(P4->IFG & BIT4)
+  {
+    P4->IFG &= ~(BIT4);
+  }
+  if(P4->IFG & BIT5)
+  {
+    P4->IFG &= ~(BIT5);
+  }
 }
