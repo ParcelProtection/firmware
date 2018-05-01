@@ -17,11 +17,10 @@
 * Low power modes
 * 32-member FIFO buffer for measurements
 
-#### Adafruit PN532 NFC Breakout Board
-* NFC chip with antenna
-* UART, SPI, or I2C communication
-* Bi-directional NFC connection capable
-* Low power modes
+#### HV-06 Bluetooth Board
+* Bluetooth chip with antenna
+* UART communication
+* Bi-directional Bluetooth over serial connection
 
 ## Target Features
 
@@ -29,9 +28,9 @@
 * Accelerometer-based fall and orientation change detection
 * RTC to track current date/time
 * Event logging to internal memory
-* NFC communication with Android app
+* Bluetooth communication with Android app
 * Battery-powered operation from low-power modes
 
-#### NFC Communication with Android Application
+#### Bluetooth Communication with Android Application
 * Initial setup with acceleration thresholds
 * Dump event data to be interpreted by application
