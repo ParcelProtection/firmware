@@ -18,8 +18,8 @@ void spi_init()
   /* SPI for accelerometer */
   P3->SEL0 &= ~(BIT0); /* CS as STE for SPI mode */
   P3->SEL1 &= ~(BIT0);
-  P3->DIR |= BIT0;
-  P3->OUT |= BIT0;
+  P3->DIR |= BIT0; /* set pin to output */
+  P3->OUT |= BIT0; /* initialize pin high */
   P1->SEL0 |= BIT7 | BIT6 | BIT5; /* MISO, MISO, CLK in SPI mode */
   P1->SEL1 &= ~(BIT7 | BIT6 | BIT5);
   EUSCI_B0->CTLW0 |= EUSCI_B_CTLW0_SWRST; /* disable */
@@ -36,23 +36,42 @@ void spi_init()
 
 void spi_write(uint8_t addr, uint8_t data)
 {
+  /* wait for idle */
   while(EUSCI_B0->STATW & EUSCI_B_STATW_SPI_BUSY);
+
+  /* select chip */
   P3->OUT &= ~(BIT0);
+
+  /* send address and write bit */
   EUSCI_B0->TXBUF = ~BIT7 & addr;
   while(EUSCI_B0->STATW & EUSCI_B_STATW_SPI_BUSY);
+
+  /* send data */
   EUSCI_B0->TXBUF = data;
   while(EUSCI_B0->STATW & EUSCI_B_STATW_SPI_BUSY);
+
+  /* deselect chip */
   P3->OUT |= BIT0;
 }
 
-void spi_read(uint8_t addr, uint8_t * data)
+uint8_t spi_read(uint8_t addr)
 {
+  /* wait for idle */
   while(EUSCI_B0->STATW & EUSCI_B_STATW_SPI_BUSY);
+
+  /* select chip */
   P3->OUT &= ~(BIT0);
+
+  /* send address and read bit */
   EUSCI_B0->TXBUF = BIT7 | addr;
   while(EUSCI_B0->STATW & EUSCI_B_STATW_SPI_BUSY);
+
+  /* send blank byte */
   EUSCI_B0->TXBUF = 0;
   while(EUSCI_B0->STATW & EUSCI_B_STATW_SPI_BUSY);
+
+  /* deselect chip */
   P3->OUT |= BIT0;
-  *data = EUSCI_B0->RXBUF;
+
+  return EUSCI_B0->RXBUF;
 }
