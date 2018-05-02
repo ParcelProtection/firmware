@@ -14,8 +14,11 @@
 #define __UART_H__
 
 #include "circbuf.h"
+#include "packets.h"
 
 #define UART_RX_BUF_LEN (64)
+#define UART_NUM_LOG (0)
+#define UART_NUM_BT (1)
 
 /**
  * @brief initializes UART
@@ -30,49 +33,55 @@
 void uart_init(cb_t ** ptr_uart_rx_buf);
 
 /**
- * @brief sends a byte over UART0
+ * @brief sends a byte over UART
  *
+ * @param uart_num 0 or 1
  * @param data The byte to send
  *
  * @return none
  */
-void uart0_send(uint8_t data);
+void uart_send_blocking(uint8_t uart_num, uint8_t data);
 
 /**
- * @brief sends a string over UART0
+ * @brief sends a block of data over UART
  *
+ * @param uart_num 0 or 1
+ * @param ptr_data A pointer to the block to send
+ * @param len The length of the block in bytes
+ *
+ * @return none
+ */
+void uart_send_n_blocking(uint8_t uart_num, uint8_t * ptr_data, uint8_t len);
+
+/**
+ * @brief sends a string over UART
+ *
+ * @param uart_num 0 or 1
  * @param data The string to send
  *
  * @return none
  */
-void uart0_send_str(uint8_t * data);
+void uart_send_str_blocking(uint8_t uart_num, uint8_t * data);
 
 /**
- * @brief sends a byte over UART1
+ * @brief sends an integer over UART
  *
- * @param data The byte to send
- *
- * @return none
- */
-void uart1_send(uint8_t data);
-
-/**
- * @brief sends a string over UART1
- *
- * @param data The string to send
- *
- * @return none
- */
-void uart1_send_str(uint8_t * data);
-
-/**
- * @brief sends an integer over UART1
- *
+ * @param uart_num 0 or 1
  * @param data The integer to send
  *
  * @return none
  */
-void uart1_send_int(int32_t data);
+void uart_send_int_blocking(uint8_t uart_num, int32_t data);
+
+/**
+ * @brief sends a packet over UART
+ *
+ * @param uart_num 0 or 1
+ * @param ptr_pkt A pointer to the packet
+ *
+ * @return none
+ */
+void uart_send_pkt(uint8_t uart_num, pkt_t * ptr_pkt);
 
 /**
  * @brief sends a byte over the on-chip UART
@@ -81,9 +90,22 @@ void uart1_send_int(int32_t data);
  *
  * @return none
  */
-__attribute__((always_inline)) inline void uart_send(uint8_t data)
+__attribute__((always_inline)) inline void log_send(uint8_t data)
 {
-  uart0_send(data);
+  uart_send_blocking(UART_NUM_LOG, data);
+}
+
+/**
+ * @brief sends a block of data over the on-chip UART
+ *
+ * @param data The block to send
+ * @param len The length of the block in bytes
+ *
+ * @return none
+ */
+__attribute__((always_inline)) inline void log_send_n(uint8_t * ptr_data, uint8_t len)
+{
+  uart_send_n_blocking(UART_NUM_LOG, ptr_data, len);
 }
 
 /**
@@ -93,9 +115,33 @@ __attribute__((always_inline)) inline void uart_send(uint8_t data)
  *
  * @return none
  */
-__attribute__((always_inline)) inline void uart_send_str(uint8_t * data)
+__attribute__((always_inline)) inline void log_send_str(uint8_t * data)
 {
-  uart0_send_str(data);
+  uart_send_str_blocking(UART_NUM_LOG, data);
+}
+
+/**
+ * @brief sends an integer over the on-chip UART
+ *
+ * @param data The integer to send
+ *
+ * @return none
+ */
+__attribute__((always_inline)) inline void log_send_int(int32_t data)
+{
+  uart_send_int_blocking(UART_NUM_LOG, data);
+}
+
+/**
+ * @brief sends a packet over the on-chip UART
+ *
+ * @param ptr_pkt A pointer to the packet
+ *
+ * @return none
+ */
+__attribute__((always_inline)) inline void log_send_pkt(pkt_t * ptr_pkt)
+{
+  uart_send_pkt(UART_NUM_LOG, ptr_pkt);
 }
 
 /**
@@ -107,7 +153,20 @@ __attribute__((always_inline)) inline void uart_send_str(uint8_t * data)
  */
 __attribute__((always_inline)) inline void bt_send(uint8_t data)
 {
-  uart1_send(data);
+  uart_send_blocking(UART_NUM_BT, data);
+}
+
+/**
+ * @brief sends a block of data over Bluetooth
+ *
+ * @param data The block to send
+ * @param len The length of the block in bytes
+ *
+ * @return none
+ */
+__attribute__((always_inline)) inline void bt_send_n(uint8_t * ptr_data, uint8_t len)
+{
+  uart_send_n_blocking(UART_NUM_BT, ptr_data, len);
 }
 
 /**
@@ -119,7 +178,7 @@ __attribute__((always_inline)) inline void bt_send(uint8_t data)
  */
 __attribute__((always_inline)) inline void bt_send_str(uint8_t * data)
 {
-  uart1_send_str(data);
+  uart_send_str_blocking(UART_NUM_BT, data);
 }
 
 /**
@@ -131,7 +190,19 @@ __attribute__((always_inline)) inline void bt_send_str(uint8_t * data)
  */
 __attribute__((always_inline)) inline void bt_send_int(int32_t data)
 {
-  uart1_send_int(data);
+  uart_send_int_blocking(UART_NUM_BT, data);
+}
+
+/**
+ * @brief sends a packet over Bluetooth
+ *
+ * @param ptr_pkt A pointer to the packet
+ *
+ * @return none
+ */
+__attribute__((always_inline)) inline void bt_send_pkt(pkt_t * ptr_pkt)
+{
+  uart_send_pkt(UART_NUM_BT, ptr_pkt);
 }
 
 #endif /* __UART_H__ */
