@@ -10,19 +10,8 @@
 #ifndef __EVENT_BUF_H__
 #define __EVENT_BUF_H__
 
+#include "packets.h"
 #include "rtc.h"
-
-/*
- * @brief Event structure
- */
-typedef struct
-{
-  uint8_t event_type; /* 0x00 - drop
-                         0x01 - flip */
-  uint8_t reserved[3];
-  rtc_t time; /* time of event */
-  uint32_t data; /* extra data (acceleration value) */
-} event_t;
 
 /*
  * @brief Event buffer status code
@@ -67,7 +56,7 @@ __attribute__((always_inline)) static inline eb_e _eb_ret(cb_e val)
  * @param ptr_buf A pointer to the event buffer pointer to be allocated
  * @param len The length of the buffer to allocate in memory
  *
- * @return A event buffer status code
+ * @return An event buffer status code
  */
 __attribute__((always_inline)) inline eb_e eb_init(eb_t ** ptr_buf, uint32_t len)
 {
@@ -82,7 +71,7 @@ __attribute__((always_inline)) inline eb_e eb_init(eb_t ** ptr_buf, uint32_t len
  * 
  * @param ptr_buf A pointer to the buffer to be freed
  *
- * @return A event buffer status code
+ * @return An event buffer status code
  */
 eb_e eb_free(eb_t ** ptr_buf)
 {
@@ -93,12 +82,12 @@ eb_e eb_free(eb_t ** ptr_buf)
 /**
  * @brief Add item to event buffer
  * 
- * Add data to a event buffer
+ * Add data to an event buffer
  * 
  * @param buf Pointer to the event buffer
  * @param ptr_data Event to add to buffer
  *
- * @return A event buffer status code
+ * @return An event buffer status code
  */
 eb_e eb_add_item(eb_t * buf, event_t * ptr_data)
 {
@@ -109,17 +98,35 @@ eb_e eb_add_item(eb_t * buf, event_t * ptr_data)
 /**
  * @brief Remove item from event buffer
  *
- * Remove data from a event buffer
+ * Remove data from an event buffer
  * 
  * @param buf Pointer to the event buffer
  * @param ptr_data Pointer to where data removed from buffer will be stored
  *
- * @return A event buffer status code
+ * @return An event buffer status code
  */
 eb_e eb_remove_item(eb_t * buf, void * ptr_data)
 {
   cb_e ret = cb_remove_item(buf, ptr_data);
   return _eb_ret(ret);
+}
+
+/**
+ * @brief Add an event to the buffer
+ *
+ * @param buf Pointer to an event buffer
+ * @param event_type The type of event
+ *
+ * @return An event buffer status code
+ */
+__attribute__((always_inline)) inline eb_e eb_add_event(eb_t * buf, event_type_e event_type)
+{
+  event_t event;
+  event.event_type = event_type;
+  event.time = rtc_get_time();
+  event.data = 0;
+
+  return eb_add_item(buf, &event);
 }
 
 #endif /* __EVENT_BUF_H__ */
