@@ -12,11 +12,15 @@
  */
 
 #include "msp.h"
+#include "circbuf.h"
 #include "helpers.h"
 #include "uart.h"
 
-void uart_init()
+void uart_init(cb_t ** ptr_uart_rx_buf)
 {
+  /* initialize RX buffer */
+  if(cb_init(ptr_uart_rx_buf, UART_RX_BUF_LEN, sizeof(uint8_t)) != CB_SUCCESS) while(1);
+
   /* UART0 for logging */
   P1->SEL0 |= BIT3 | BIT2; /* UART mode */
   P1->SEL1 &= ~(BIT3 | BIT2);
