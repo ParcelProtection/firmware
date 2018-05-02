@@ -14,6 +14,7 @@
 #include "msp.h"
 #include "circbuf.h"
 #include "helpers.h"
+#include "packets.h"
 #include "uart.h"
 
 void uart_init(cb_t ** ptr_uart_rx_buf)
@@ -46,49 +47,75 @@ void uart_init(cb_t ** ptr_uart_rx_buf)
   EUSCI_A2->CTLW0 &= ~(EUSCI_A_CTLW0_SWRST); /* enable */
 }
 
-void uart0_send(uint8_t data)
+void uart_send_blocking(uint8_t uart_num, uint8_t data)
 {
-  /* wait for UART to be idle */
-  while(!(EUSCI_A0->IFG & EUSCI_A_IFG_TXIFG));
-
-  EUSCI_A0->TXBUF = data;
-}
-
-void uart0_send_str(uint8_t * data)
-{
-  uint32_t i;
-  for(i = 0; *(data + i); i++)
+  if(uart_num == 0)
   {
     /* wait for UART to be idle */
     while(!(EUSCI_A0->IFG & EUSCI_A_IFG_TXIFG));
 
-    EUSCI_A0->TXBUF = *(data + i);
+    EUSCI_A0->TXBUF = data;
   }
-}
-
-void uart1_send(uint8_t data)
-{
-  /* wait for UART to be idle */
-  while(!(EUSCI_A2->IFG & EUSCI_A_IFG_TXIFG));
-
-  EUSCI_A2->TXBUF = data;
-}
-
-void uart1_send_str(uint8_t * data)
-{
-  uint32_t i;
-  for(i = 0; *(data + i); i++)
+  else if(uart_num == 1)
   {
     /* wait for UART to be idle */
     while(!(EUSCI_A2->IFG & EUSCI_A_IFG_TXIFG));
 
-    EUSCI_A2->TXBUF = *(data + i);
+    EUSCI_A2->TXBUF = data;
   }
 }
 
-void uart1_send_int(int32_t data)
+void uart_send_n_blocking(uint8_t uart_num, uint8_t * ptr_data, uint8_t len)
+{
+  uint8_t i;
+  for(i = 0; i < len; i++)
+  {
+    uart_send_blocking(uart_num, ptr_data[i]);
+  }
+}
+
+void uart_send_str_blocking(uint8_t uart_num, uint8_t * data)
+{
+  uint32_t i;
+  if(uart_num == 0)
+  {
+    for(i = 0; *(data + i); i++)
+    {
+      /* wait for UART to be idle */
+      while(!(EUSCI_A0->IFG & EUSCI_A_IFG_TXIFG));
+
+      EUSCI_A0->TXBUF = *(data + i);
+    }
+  }
+  else if(uart_num == 1)
+  {
+    for(i = 0; *(data + i); i++)
+    {
+      /* wait for UART to be idle */
+      while(!(EUSCI_A2->IFG & EUSCI_A_IFG_TXIFG));
+
+      EUSCI_A2->TXBUF = *(data + i);
+    }
+  }
+}
+
+void uart_send_int_blocking(uint8_t uart_num, int32_t data)
 {
   uint8_t conversion_buf[12];
   my_itoa(data, conversion_buf, BASE_16);
-  uart1_send_str(conversion_buf);
+  uart_send_str_blocking(uart_num, conversion_buf);
+}
+
+void uart_send_pkt(uint8_t uart_num, pkt_t * ptr_pkt)
+{
+  uart_send_blocking(uart_num, ptr_pkt->type);
+  uart_send_blocking(uart_num, ptr_pkt->pkt_len);
+
+  uint8_t i;
+  for(i = 0; i < ptr_pkt->pkt_len; i++)
+  {
+    uart_send_blocking(uart_num, ptr_pkt->ptr_pkt[i]);
+  }
+
+  uart_send_blocking(uart_num, ptr_pkt->checksum);
 }
