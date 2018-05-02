@@ -79,7 +79,7 @@ __attribute__((always_inline)) inline uint8_t adxl_get_dev_id()
  */
 __attribute__((always_inline)) inline int16_t adxl_get_x()
 {
-  return spi_read_double(ADXL_DATAX0);
+  return (spi_read(ADXL_DATAX1) << 8) | spi_read(ADXL_DATAX0);
 }
 
 /**
@@ -89,7 +89,7 @@ __attribute__((always_inline)) inline int16_t adxl_get_x()
  */
 __attribute__((always_inline)) inline int16_t adxl_get_y()
 {
-  return spi_read_double(ADXL_DATAY0);
+    return (spi_read(ADXL_DATAY1) << 8) | spi_read(ADXL_DATAY0);
 }
 
 /**
@@ -99,7 +99,7 @@ __attribute__((always_inline)) inline int16_t adxl_get_y()
  */
 __attribute__((always_inline)) inline int16_t adxl_get_z()
 {
-  return spi_read_double(ADXL_DATAZ0);
+    return (spi_read(ADXL_DATAZ1) << 8) | spi_read(ADXL_DATAZ0);
 }
 
 /**
