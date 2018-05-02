@@ -31,7 +31,8 @@ typedef enum
   PKT_CMD_DUMP,
   PKT_RES_ACK = 0x80,
   PKT_RES_STATUS,
-  PKT_RES_DUMP
+  PKT_RES_DUMP,
+  PKT_RES_NAK = 0x8F
 } pkt_type_e;
 
 /*
@@ -143,7 +144,8 @@ typedef struct
                    0x02 - dump command
                    0x80 - acknowledge
                    0x81 - status response
-                   0x82 - dump response */
+                   0x82 - dump response 
+                   0x8F - non-acknowledge */
   uint8_t pkt_len;
   uint8_t * ptr_pkt;
   uint8_t checksum; /* running XOR of all bytes in packet */
