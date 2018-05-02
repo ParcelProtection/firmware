@@ -10,6 +10,8 @@
 #ifndef __EVENT_BUF_H__
 #define __EVENT_BUF_H__
 
+#include "rtc.h"
+
 /*
  * @brief Event structure
  */
@@ -18,7 +20,7 @@ typedef struct
   uint8_t event_type; /* 0x00 - drop
                          0x01 - flip */
   uint8_t reserved[3];
-  uint32_t time; /* time of event */
+  rtc_t time; /* time of event */
   uint32_t data; /* extra data (acceleration value) */
 } event_t;
 

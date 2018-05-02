@@ -36,7 +36,7 @@ typedef struct
 {
   uint8_t package_id; /* internal package id */
   uint8_t reserved_0[3];
-  int32_t epoch_time; /* current time */
+  rtc_t time; /* current time */
   uint8_t carrier_access_code; /* access code for carriers */
   uint8_t user_access_code; /* access code for users */
   uint8_t track_drops :1; /* track package drops; 0: false, 1: true */
@@ -93,9 +93,26 @@ typedef struct
   uint8_t event_type; /* 0x00 - drop
                          0x01 - flip */
   uint8_t reserved[3];
-  uint32_t time; /* time of event */
+  rtc_t time; /* time of event */
   uint32_t data; /* extra data (acceleration value) */
 } event_t;
 #endif /* __EVENT_BUF_H__ */
+
+#ifndef __RTC_H__
+/*
+ * @brief time structure
+ */
+typedef struct
+{
+  uint16_t year;
+  uint8_t month;
+  uint8_t dow; /* day of the week */
+  uint8_t day;
+  uint8_t hour;
+  uint8_t minute;
+  uint8_t second;
+  uint8_t reserved[2];
+} rtc_t;
+#endif /* __RTC_H__ */
 
 #endif /* __PACKETS_H__ */
