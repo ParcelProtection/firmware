@@ -13,15 +13,21 @@
 #ifndef __UART_H__
 #define __UART_H__
 
+#include "circbuf.h"
+
+#define UART_RX_BUF_LEN (64)
+
 /**
  * @brief initializes UART
  *
  * UART0 is the on-board UART, initialized to 9600 BAUD
  * UARTi is the Bluetooth UART, initialized to 9600 BAUD
  *
+ * @param ptr_uart_rx_buf The RX buffer to initialize
+ *
  * @return none
  */
-void uart_init();
+void uart_init(cb_t ** ptr_uart_rx_buf);
 
 /**
  * @brief sends a byte over UART0
