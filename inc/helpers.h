@@ -23,6 +23,19 @@
 #define BASE_16 (16)
 
 /**
+ * @brief Reverses a block of memory
+ *
+ * Given a pointer to a source memory location and its size,
+ * reverses the order of the bytes in the block
+ *
+ * @param src Pointer to the source block
+ * @param length The length of the memory block
+ *
+ * @return A pointer to the source memory block
+ */
+uint8_t * my_reverse(uint8_t * src, uint32_t length);
+
+/**
  * @brief Converts integers to ASCII strings
  *
  * Converts an integer of a given base to an ASCII string,
