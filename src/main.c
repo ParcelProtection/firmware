@@ -24,6 +24,7 @@
 
 #include "msp.h"
 #include <stddef.h>
+#include <stdlib.h>
 #include "adxl345.h"
 #include "circbuf.h"
 #include "event_buf.h"
@@ -43,11 +44,11 @@ static dev_status_e dev_status = STATUS_UNINITIALIZED;
 static uint16_t package_id;
 static uint8_t carrier_access_code;
 static uint8_t user_access_code;
-static uint8_t track_drops_f;
-static uint8_t track_flips_f;
+static uint8_t track_drops_f = 0;
+static uint8_t track_flips_f = 0;
 static uint8_t tracking_len;
 static uint8_t * tracking = NULL;
-uint8_t pkt_received_f = 0;
+uint8_t pkts_received = 0;
 
 
 /* Initialization Functions */
@@ -61,9 +62,7 @@ void gpio_init()
   P4->OUT |= BIT0; /* pullup resistor */
   P4->IES &= ~(BIT5 | BIT4); /* interrupt on low to high transition */
   P4->IES |= BIT0; /* interrupt on high to low transition */
-  P4->IE |= BIT4; /* enable interrupts */
-  NVIC_EnableIRQ(PORT4_IRQn);
-  __enable_interrupts();
+  P4->IE |= BIT4; /* enable interrupt generation */
 }
 
 void adxl_init()
@@ -79,14 +78,37 @@ void adxl_init()
   spi_read(ADXL_INT_SOURCE); /* clear all interrupts */
 }
 
+void begin_tracking()
+{
+  if(track_drops_f)
+  {
+    NVIC_EnableIRQ(PORT4_IRQn);
+    __enable_interrupts();
+  }
+  dev_status = STATUS_TRACKING;
+}
+
 
 /* Packet Sending Functions */
 
-void send_ack_pkt(ack_e ack);
+void send_ack_pkt(ack_e ack)
+{
+  pkt_t pkt;
+  pkt.type = (ack == ACK) ? PKT_RES_ACK : PKT_RES_NAK;
+  pkt.checksum = pkt.type;
+  pkt.pkt_len = 0;
+  pkt.checksum ^= pkt.pkt_len;
 
-void send_status_pkt();
+  bt_send_pkt(&pkt);
+}
 
-void send_dump_pkt();
+void send_status_pkt()
+{
+}
+
+void send_dump_pkt()
+{
+}
 
 
 /* Interrupt Handlers */
@@ -126,9 +148,12 @@ void main(void)
   adxl_init();
 
   /* main control loop */
-  uint8_t val;
+  ack_e ack;
+  uint8_t pkt_type, pkt_len, pkt_crc, crc_check;
+  uint8_t * pkt = NULL;
   int16_t acc_z;
-  uint32_t flip_count = 0;
+  uint32_t flip_count = 0, i;
+  cmd_init_t * ptr_init_pkt = NULL;
 
   while(1)
   {
@@ -151,11 +176,76 @@ void main(void)
     } /* if(track_flips_f) */
 
     /* handle received packets */
-    if(pkt_received_f)
+    if(pkts_received)
     {
-      /* pull packets from RX buffer */
+      pkts_received--;
 
+      /* first byte is the packet type */
+      cb_remove_item(ptr_uart_rx_buf, &pkt_type);
+      crc_check = pkt_type;
+
+      /* second byte is the payload len */
+      cb_remove_item(ptr_uart_rx_buf, &pkt_len);
+      crc_check ^= pkt_len;
+
+      /* get payload */
+      pkt = (uint8_t *)malloc(pkt_len);
+      for(i = 0; i < pkt_len; i++)
+      {
+        cb_remove_item(ptr_uart_rx_buf, &pkt[i]);
+        crc_check ^= pkt[i];
+      }
+
+      /* get and check crc */
+      cb_remove_item(ptr_uart_rx_buf, &pkt_crc);
+#ifdef CRC_CHECK
+      ack = (crc_check == pkt_crc) ? ACK : NAK;
+#else
+      ack = ACK;
+#endif /* CRC_CHECK */
+      
       /* handle packets */
+      if(ack == ACK)
+      {
+        switch(pkt_type)
+        {
+          case PKT_CMD_STATUS:
+            send_status_pkt();
+            break;
+          case PKT_CMD_INIT:
+            ptr_init_pkt = (cmd_init_t *)pkt;
+
+            /* populate package parameters */
+            package_id = ptr_init_pkt->package_id;
+            carrier_access_code = ptr_init_pkt->carrier_access_code;
+            user_access_code = ptr_init_pkt->user_access_code;
+            track_drops_f = ptr_init_pkt->track_drops;
+            track_flips_f = ptr_init_pkt->track_flips;
+            tracking_len = ptr_init_pkt->tracking_len;
+
+            if(tracking) free( (void *)tracking );
+            tracking = (uint8_t *)malloc(tracking_len);
+            memcpy(tracking, &ptr_init_pkt->tracking, tracking_len);
+
+            rtc_init(ptr_init_pkt->time);
+
+            begin_tracking();
+            send_ack_pkt(ack);
+            break;
+          case PKT_CMD_DUMP:
+            send_dump_pkt();
+            break;
+          default:
+            send_ack_pkt(NAK);
+            break;
+        } /* switch(pkt_type) */
+      }
+      else
+      {
+        send_ack_pkt(ack);
+      } /* if(ack == ACK) */
+
+      free( (void *)pkt );
 
     } /* if(pkt_received_f) */
   }
