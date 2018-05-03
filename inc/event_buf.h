@@ -35,6 +35,7 @@ typedef struct
 {
   ll_event_t * head;
   ll_event_t * tail;
+  uint32_t count;
 } eb_t;
 
 /**
@@ -112,6 +113,23 @@ __attribute__((always_inline)) inline eb_e eb_new_event(eb_t * buf, event_type_e
   event.data = data;
 
   return eb_add_item(buf, &event);
+}
+
+/**
+ * @brief Get the current number of members
+ *
+ * @param buf Pointer to an event buffer
+ * @param count Pointer to the location to store the current count
+ *
+ * @return An event buffer status code
+ */
+__attribute__((always_inline)) inline eb_e eb_get_count(eb_t * buf, uint32_t * count)
+{
+  /* count inputs */
+  if(!buf || !count) return EB_NULL_PTR;
+
+  *count = buf->count;
+  return EB_SUCCESS;
 }
 
 #endif /* __EVENT_BUF_H__ */

@@ -25,6 +25,7 @@ eb_e eb_init(eb_t ** ptr_buf)
   /* initialize */
   (*ptr_buf)->head = NULL;
   (*ptr_buf)->tail = NULL;
+  (*ptr_buf)->count = 0;
 
   return EB_SUCCESS;
 }
@@ -65,6 +66,8 @@ eb_e eb_add_item(eb_t * buf, event_t * ptr_data)
 
   if(!buf->tail) buf->tail = ptr_event;
 
+  buf->count++;
+
   END_CRITICAL_SECTION();
 
   return EB_SUCCESS;
@@ -88,6 +91,8 @@ eb_e eb_remove_item(eb_t * buf, event_t * ptr_data)
 
   if(rem->next) rem->next->prev = NULL;
   else buf->head = NULL;
+
+  buf->count--;
 
   END_CRITICAL_SECTION();
 
