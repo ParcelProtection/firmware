@@ -95,3 +95,18 @@ cb_e cb_remove_item(cb_t * buf, void * ptr_data)
 
   return CB_SUCCESS;
 }
+
+cb_e cb_clear(cb_t * buf)
+{
+  /* check inputs */
+  if(!buf) return CB_NULL_PTR;
+
+  BEGIN_CRITICAL_SECTION();
+
+  buf->tail = buf->head;
+  buf->count = 0;
+
+  END_CRITICAL_SECTION();
+
+  return CB_SUCCESS;
+}

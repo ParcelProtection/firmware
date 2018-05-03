@@ -84,4 +84,13 @@ cb_e cb_add_item(cb_t * buf, void * ptr_data);
  */
 cb_e cb_remove_item(cb_t * buf, void * ptr_data);
 
+/**
+ * @brief Clears the circular buffer
+ *
+ * @param buf Pointer to the circular buffer
+ *
+ * @return A circular buffer status code
+ */
+cb_e cb_clear(cb_t * buf);
+
 #endif /* __CIRCBUF_H__ */
