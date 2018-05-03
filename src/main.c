@@ -38,6 +38,13 @@
 #define ACC_TAP_THRESH (0xFF)
 #define ACC_TAP_TIME (0x40)
 
+typedef enum
+{
+  AUTH_UNAUTH,
+  AUTH_USER,
+  AUTH_CARRIER
+} auth_e;
+
 static eb_t * ptr_event_buf = NULL;
 static cb_t * ptr_uart_rx_buf = NULL;
 static dev_status_e dev_status = STATUS_UNINITIALIZED;
@@ -104,10 +111,70 @@ void send_ack_pkt(ack_e ack)
 
 void send_status_pkt()
 {
+  pkt_t pkt;
+  pkt.type = PKT_RES_STATUS;
+  pkt.checksum = pkt.type;
+  pkt.pkt_len = sizeof(dev_status);
+  pkt.checksum ^= pkt.pkt_len;
+
+  res_status_t payload;
+  payload.package_id = package_id;
+  payload.status_code = dev_status;
+
+  uint8_t i;
+  for(i = 0; i < pkt.pkt_len; i++)
+  {
+    pkt.checksum ^= *((uint8_t *)(&payload) + i);
+  }
+
+  pkt.ptr_pkt = (uint8_t *)&payload;
+
+  bt_send_pkt(&pkt);
 }
 
-void send_dump_pkt()
+void send_dump_pkt(auth_e auth)
 {
+  /* return a NAK if not authorized */
+  if(auth == AUTH_UNAUTH)
+  {
+    send_ack_pkt(NAK);
+    return;
+  }
+
+  uint8_t crc, data, pkt_len;
+  uint32_t count, i, j;
+  event_t event;
+
+  /* send header */
+  bt_send(PKT_RES_DUMP);
+  crc = PKT_RES_DUMP;
+
+  eb_get_count(ptr_event_buf, &count);
+  pkt_len = sizeof(res_dump_t) - sizeof(event_t *) + count * sizeof(event_t);
+  bt_send(pkt_len);
+  crc ^= pkt_len;
+
+  bt_send(package_id);
+  crc ^= package_id;
+  bt_send(0x00);
+  bt_send(0x00);
+  bt_send(0x00);
+  bt_send(count);
+  crc ^= count;
+
+  /* send events */
+  for(i = 0; i < count; i++)
+  {
+    eb_seek_item(ptr_event_buf, &event, i);
+    for(j = 0; j < sizeof(event_t); j++)
+    {
+      data = *((uint8_t *)&event + j);
+      bt_send(data);
+      crc ^= data;
+    }
+  }
+
+  bt_send(crc);
 }
 
 
@@ -125,7 +192,7 @@ void PORT4_IRQHandler()
     P4->IFG &= ~(BIT4);
     spi_read(ADXL_INT_SOURCE);
 
-    if(track_drops_f) eb_add_event(ptr_event_buf, EVENT_DROP);
+    if(track_drops_f) eb_new_event(ptr_event_buf, EVENT_DROP, 0);
   }
   if(P4->IFG & BIT5)
   {
@@ -133,7 +200,37 @@ void PORT4_IRQHandler()
   }
 }
 
-void EUSCIA2_IRQHandler();
+void EUSCIA2_IRQHandler()
+{
+  /* clear interrupt */
+  EUSCI_A2->IFG &= ~EUSCI_A_IFG_RXIFG;
+
+  static uint8_t mid_pkt = 0, byte_count, payload_len;
+
+  uint8_t data = EUSCI_A2->RXBUF;
+  cb_add_item(ptr_uart_rx_buf, &data);
+
+  /* do a bit of processing to simplify main */
+  if(!mid_pkt)
+  {
+    mid_pkt = 1;
+    byte_count = 1;
+  }
+  else if(byte_count == 1)
+  {
+    payload_len = data;
+    byte_count++;
+  }
+  else if(byte_count == 2 + payload_len)
+  {
+    mid_pkt = 0;
+    pkts_received++;
+  }
+  else
+  {
+    byte_count++;
+  }
+}
 
 
 /* Main */
@@ -142,13 +239,14 @@ void main(void)
 {
   WDT_A->CTL = WDT_A_CTL_PW | WDT_A_CTL_HOLD; /* stop watchdog timer */
 
-  uart_init(&ptr_event_buf);
+  uart_init(&ptr_uart_rx_buf);
   spi_init();
   gpio_init();
   adxl_init();
 
   /* main control loop */
   ack_e ack;
+  auth_e auth;
   uint8_t pkt_type, pkt_len, pkt_crc, crc_check;
   uint8_t * pkt = NULL;
   int16_t acc_z;
@@ -166,7 +264,7 @@ void main(void)
         flip_count++;
         if(flip_count > ACC_FLIP_THRESH)
         {
-          eb_add_event(ptr_event_buf, EVENT_FLIP);
+          eb_new_event(ptr_event_buf, EVENT_FLIP, 0);
         }
       }
       else
@@ -233,7 +331,13 @@ void main(void)
             send_ack_pkt(ack);
             break;
           case PKT_CMD_DUMP:
-            send_dump_pkt();
+#ifdef AUTH_CHECK
+            auth = ( ((cmd_dump_t *)pkt)->access_code == carrier_access_code ) ? AUTH_CARRIER :
+                   ( ((cmd_dump_t *)pkt)->access_code == user_access_code ) ? AUTH_USER : AUTH_UNAUTH;
+#else
+            auth = AUTH_CARRIER;
+#endif /* AUTH_CHECK */
+            send_dump_pkt(auth);
             break;
           default:
             send_ack_pkt(NAK);
