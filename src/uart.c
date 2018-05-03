@@ -45,6 +45,9 @@ void uart_init(cb_t ** ptr_uart_rx_buf)
                     0x4 << EUSCI_A_MCTLW_BRF_OFS |
                     EUSCI_A_MCTLW_OS16; /* enable oversampling */
   EUSCI_A2->CTLW0 &= ~(EUSCI_A_CTLW0_SWRST); /* enable */
+  EUSCI_A2->IE = EUSCI_A_IE_RXIE; /* enable interrupts */
+  NVIC_EnableIRQ(EUSCIA2_IRQn);
+  __enable_interrupts();
 }
 
 void uart_send_blocking(uint8_t uart_num, uint8_t data)
