@@ -38,6 +38,12 @@
 #define ACC_TAP_THRESH (0xFF)
 #define ACC_TAP_TIME (0x40)
 
+/* functionality switches */
+#undef CRC_CHECK
+#undef AUTH_CHECK
+#define TESTING
+#undef DEMO
+
 typedef enum
 {
   AUTH_UNAUTH,
@@ -70,6 +76,19 @@ void gpio_init()
   P4->IES &= ~(BIT5 | BIT4); /* interrupt on low to high transition */
   P4->IES |= BIT0; /* interrupt on high to low transition */
   P4->IE |= BIT4; /* enable interrupt generation */
+
+#ifdef TESTING
+  P1->SEL0 &= !(BIT4 | BIT1); /* GPIO mode */
+  P1->SEL1 &= !(BIT4 | BIT1);
+  P1->DIR &= !(BIT4 | BIT1); /* configure as inputs */
+  P1->REN |= BIT4 | BIT1; /* enable pullup/down resistor */
+  P1->OUT |= BIT4 | BIT1; /* pullup resistor */
+  P1->IES |= BIT4 | BIT1; /* interrupt on high to low transition */
+  P1->IE |= BIT4 | BIT1; /* enable interrupt generation */
+  P1->IFG = 0; /* clear interrupts */
+  NVIC_EnableIRQ(PORT1_IRQn);
+  __enable_interrupts();
+#endif /* TESTING */
 }
 
 void adxl_init()
@@ -178,7 +197,111 @@ void send_dump_pkt(auth_e auth)
 }
 
 
+/* Testing Functions */
+
+#ifdef TESTING
+void add_mock_events()
+{
+  rtc_t mock_time;
+  mock_time.year = 2018;
+  mock_time.month = 4;
+  mock_time.dow = 0;
+  mock_time.day = 22;
+  mock_time.hour = 19;
+  mock_time.minute = 40;
+  mock_time.second = 17;
+
+  rtc_init(mock_time);
+  eb_new_event(ptr_event_buf, EVENT_FLIP, 0);
+
+  mock_time.dow = 2;
+  mock_time.day = 24;
+  mock_time.hour = 8;
+  mock_time.minute = 44;
+  mock_time.second = 36;
+
+  rtc_init(mock_time);
+  eb_new_event(ptr_event_buf, EVENT_DROP, 0);
+
+  mock_time.hour = 10;
+  mock_time.minute = 48;
+  mock_time.second = 11;
+
+  rtc_init(mock_time);
+  eb_new_event(ptr_event_buf, EVENT_FLIP, 0);
+
+  mock_time.hour = 17;
+  mock_time.minute = 5;
+  mock_time.second = 57;
+
+  rtc_init(mock_time);
+  eb_new_event(ptr_event_buf, EVENT_DROP, 0);
+}
+#endif /* TESTING */
+
+
 /* Interrupt Handlers */
+
+#ifdef TESTING
+void PORT1_IRQHandler()
+{
+  if(P1->IFG & BIT1)
+  {
+    /* artificially initialize */
+
+    /* populate package parameters */
+    package_id = 0xBEEF;
+    carrier_access_code = 0x8A;
+    user_access_code = 0xB2;
+    track_drops_f = 1;
+    track_flips_f = 1;
+    tracking_len = 18;
+
+    if(tracking) free( (void *)tracking );
+    tracking = (uint8_t *)malloc(tracking_len);
+    memcpy(tracking, "1ZA807T70336134832", tracking_len);
+
+    rtc_t rtc;
+    rtc.year = 2018;
+    rtc.month = 5;
+    rtc.dow = 4;
+    rtc.day = 3;
+    rtc.hour = 10;
+    rtc.minute = 0;
+    rtc.second = 0;
+    rtc_init(rtc);
+
+    begin_tracking();
+    send_ack_pkt(ACK);
+
+    /* debounce */
+    uint32_t i;
+    for(i = 0; i < 1000; i++);
+
+    P1->IFG &= ~BIT1;
+  }
+  if(P1->IFG & BIT4)
+  {
+    /* spoof valid dump command */
+    cb_clear(ptr_uart_rx_buf);
+    uint8_t data = 0x02;
+    cb_add_item(ptr_uart_rx_buf, &data);
+    data = 0x01;
+    cb_add_item(ptr_uart_rx_buf, &data);
+    data = 0x8A;
+    cb_add_item(ptr_uart_rx_buf, &data);
+    data = 0x02 ^ 0x01 ^ 0x8A;
+    cb_add_item(ptr_uart_rx_buf, &data);
+    pkts_received++;
+
+    /* debounce */
+    uint32_t i;
+    for(i = 0; i < 1000; i++);
+
+    P1->IFG &= ~BIT4;
+  }
+}
+#endif /* TESTING */
 
 void PORT4_IRQHandler()
 {
@@ -239,10 +362,15 @@ void main(void)
 {
   WDT_A->CTL = WDT_A_CTL_PW | WDT_A_CTL_HOLD; /* stop watchdog timer */
 
+  eb_init(&ptr_event_buf);
   uart_init(&ptr_uart_rx_buf);
   spi_init();
   gpio_init();
   adxl_init();
+
+#ifdef TESTING
+  add_mock_events();
+#endif
 
   /* main control loop */
   ack_e ack;
@@ -262,7 +390,7 @@ void main(void)
       if(acc_z > 0)
       {
         flip_count++;
-        if(flip_count > ACC_FLIP_THRESH)
+        if(flip_count == ACC_FLIP_THRESH)
         {
           eb_new_event(ptr_event_buf, EVENT_FLIP, 0);
         }
