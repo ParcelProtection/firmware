@@ -41,7 +41,7 @@
 /* functionality switches */
 #undef CRC_CHECK
 #undef AUTH_CHECK
-#define TESTING
+#undef TESTING
 #undef DEMO
 
 typedef enum
@@ -68,9 +68,9 @@ uint8_t pkts_received = 0;
 
 void gpio_init()
 {
-  P4->SEL0 &= !(BIT5 | BIT4 | BIT0); /* GPIO mode */
-  P4->SEL1 &= !(BIT5 | BIT4 | BIT0);
-  P4->DIR &= !(BIT5 | BIT4 | BIT0); /* configure as inputs */
+  P4->SEL0 &= ~(BIT5 | BIT4 | BIT0); /* GPIO mode */
+  P4->SEL1 &= ~(BIT5 | BIT4 | BIT0);
+  P4->DIR &= ~(BIT5 | BIT4 | BIT0); /* configure as inputs */
   P4->REN |= BIT0; /* enable pullup/down resistor */
   P4->OUT |= BIT0; /* pullup resistor */
   P4->IES &= ~(BIT5 | BIT4); /* interrupt on low to high transition */
@@ -78,9 +78,9 @@ void gpio_init()
   P4->IE |= BIT4; /* enable interrupt generation */
 
 #ifdef TESTING
-  P1->SEL0 &= !(BIT4 | BIT1); /* GPIO mode */
-  P1->SEL1 &= !(BIT4 | BIT1);
-  P1->DIR &= !(BIT4 | BIT1); /* configure as inputs */
+  P1->SEL0 &= ~(BIT4 | BIT1); /* GPIO mode */
+  P1->SEL1 &= ~(BIT4 | BIT1);
+  P1->DIR &= ~(BIT4 | BIT1); /* configure as inputs */
   P1->REN |= BIT4 | BIT1; /* enable pullup/down resistor */
   P1->OUT |= BIT4 | BIT1; /* pullup resistor */
   P1->IES |= BIT4 | BIT1; /* interrupt on high to low transition */
@@ -108,6 +108,8 @@ void begin_tracking()
 {
   if(track_drops_f)
   {
+    spi_read(ADXL_INT_SOURCE); /* clear interrupts */
+    P4->IFG &= ~(BIT4);
     NVIC_EnableIRQ(PORT4_IRQn);
     __enable_interrupts();
   }
@@ -133,7 +135,7 @@ void send_status_pkt()
   pkt_t pkt;
   pkt.type = PKT_RES_STATUS;
   pkt.checksum = pkt.type;
-  pkt.pkt_len = sizeof(dev_status);
+  pkt.pkt_len = sizeof(res_status_t);
   pkt.checksum ^= pkt.pkt_len;
 
   res_status_t payload;
@@ -216,7 +218,7 @@ void add_mock_events()
   rtc_init(mock_time);
   eb_new_event(ptr_event_buf, EVENT_FLIP, 0);
 
-/*  mock_time.dow = 2;
+  mock_time.dow = 2;
   mock_time.day = 24;
   mock_time.hour = 8;
   mock_time.minute = 44;
@@ -237,7 +239,7 @@ void add_mock_events()
   mock_time.second = 57;
 
   rtc_init(mock_time);
-  eb_new_event(ptr_event_buf, EVENT_DROP, 0);*/
+  eb_new_event(ptr_event_buf, EVENT_DROP, 0);
 }
 #endif /* TESTING */
 
@@ -314,8 +316,10 @@ void PORT4_IRQHandler()
   if(P4->IFG & BIT4)
   {
     /* clear interrupt */
-    P4->IFG &= ~(BIT4);
+    uint32_t i;
+    for(i = 0; i < 10000; i++);
     spi_read(ADXL_INT_SOURCE);
+    P4->IFG &= ~(BIT4);
 
     if(track_drops_f) eb_new_event(ptr_event_buf, EVENT_DROP, 0);
   }

@@ -20,7 +20,7 @@ eb_e eb_init(eb_t ** ptr_buf)
 
   /* allocate memory */
   *ptr_buf = (eb_t *)malloc(sizeof(eb_t));
-  if(!ptr_buf) return EB_MALLOC_FAILED;
+  if(!(*ptr_buf)) return EB_MALLOC_FAILED;
 
   /* initialize */
   (*ptr_buf)->head = NULL;
