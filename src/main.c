@@ -163,6 +163,7 @@ void send_dump_pkt(auth_e auth)
   uint8_t crc, data, pkt_len;
   uint32_t count, i, j;
   event_t event;
+  res_dump_t payload;
 
   /* send header */
   bt_send(PKT_RES_DUMP);
@@ -173,13 +174,14 @@ void send_dump_pkt(auth_e auth)
   bt_send(pkt_len);
   crc ^= pkt_len;
 
+  /* send payload */
   bt_send(package_id);
   crc ^= package_id;
-  bt_send(0x00);
-  bt_send(0x00);
-  bt_send(0x00);
+  bt_send(package_id >> 8);
+  crc ^= package_id >> 8;
   bt_send(count);
   crc ^= count;
+  bt_send(0x00);
 
   /* send events */
   for(i = 0; i < count; i++)
@@ -214,7 +216,7 @@ void add_mock_events()
   rtc_init(mock_time);
   eb_new_event(ptr_event_buf, EVENT_FLIP, 0);
 
-  mock_time.dow = 2;
+/*  mock_time.dow = 2;
   mock_time.day = 24;
   mock_time.hour = 8;
   mock_time.minute = 44;
@@ -235,7 +237,7 @@ void add_mock_events()
   mock_time.second = 57;
 
   rtc_init(mock_time);
-  eb_new_event(ptr_event_buf, EVENT_DROP, 0);
+  eb_new_event(ptr_event_buf, EVENT_DROP, 0);*/
 }
 #endif /* TESTING */
 

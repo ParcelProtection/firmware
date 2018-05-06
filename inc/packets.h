@@ -111,7 +111,7 @@ typedef struct
  */
 typedef struct
 {
-  uint8_t package_id; /* internal package id */
+  uint16_t package_id; /* internal package id */
   uint8_t status_code; /* 0x00 - uninitialized
                           0x01 - initialized and tracking
                           0x02 - error */
@@ -122,9 +122,9 @@ typedef struct
  */
 typedef struct
 {
-  uint8_t package_id; /* internal package id */
-  uint8_t reserved[3];
-  uint32_t num_events; /* number of events in log */
+  uint16_t package_id; /* internal package id */
+  uint8_t num_events; /* number of events in log */
+  uint8_t reserved;
   event_t * events; /* events */
 } res_dump_t;
 
