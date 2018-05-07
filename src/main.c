@@ -42,6 +42,7 @@
 #undef CRC_CHECK
 #undef AUTH_CHECK
 #undef TESTING
+#define APP_TESTING
 #undef DEMO
 
 typedef enum
@@ -334,6 +335,11 @@ void EUSCIA2_IRQHandler()
   /* clear interrupt */
   EUSCI_A2->IFG &= ~EUSCI_A_IFG_RXIFG;
 
+#ifdef APP_TESTING
+  uint8_t data = EUSCI_A2->RXBUF;
+
+  bt_send(data);
+#else
   static uint8_t mid_pkt = 0, byte_count, payload_len;
 
   uint8_t data = EUSCI_A2->RXBUF;
@@ -359,6 +365,7 @@ void EUSCIA2_IRQHandler()
   {
     byte_count++;
   }
+#endif /* APP_TESTING */
 }
 
 
@@ -376,6 +383,10 @@ void main(void)
 
 #ifdef TESTING
   add_mock_events();
+#endif
+
+#ifdef APP_TESTING
+  while(1);
 #endif
 
   /* main control loop */
