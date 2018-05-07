@@ -1,3 +1,4 @@
+import argparse
 import time
 import serial
 import threading
@@ -51,13 +52,6 @@ def send_status_pkt():
   return
 
 def serial_read():
-  ser.isOpen()
-  print("Connected to parcel\n")
-  print("Usage:")
-  print("  's': status")
-  print("  'i': initialize")
-  print("  'd': get data\n")
-  
   while running:
     #get packet header
     pkt_hdr = ser.read(2)
@@ -156,9 +150,29 @@ def user_input():
   print("Closing")
 
 # Main
-running = 1
-ser = serial.Serial('COM21', 9600)
+parser = argparse.ArgumentParser(description='Test packet communication with Parcel Protection device')
+parser.add_argument('port',
+                    metavar='P',
+                    help='port for Bluetooth serial connection')
+args = parser.parse_args()
 
+port = args.port
+
+running = 1
+
+# connect to device
+ser = serial.Serial(port, 9600)
+if(ser.is_open == False):
+  sys.exit()
+
+print("Connected to parcel on port {}\n".format(port))
+print("Usage:")
+print("  's': status")
+print("  'i': initialize")
+print("  'd': get data")
+print("  'q': quit\n")
+
+# create threads for keyboard input and reading packets
 thread_serial = threading.Thread(name='serial_read', target=serial_read)
 thread_serial.daemon = True
 thread_input = threading.Thread(name='user_input', target=user_input)
