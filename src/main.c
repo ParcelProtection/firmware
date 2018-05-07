@@ -42,8 +42,8 @@
 #undef CRC_CHECK
 #undef AUTH_CHECK
 #undef TESTING
-#define APP_TESTING
-#undef DEMO
+#undef APP_TESTING
+#define DEMO
 
 typedef enum
 {
@@ -204,7 +204,7 @@ void send_dump_pkt(auth_e auth)
 
 /* Testing Functions */
 
-#ifdef TESTING
+#if defined TESTING | defined DEMO
 void add_mock_events()
 {
   rtc_t mock_time;
@@ -381,12 +381,17 @@ void main(void)
   gpio_init();
   adxl_init();
 
-#ifdef TESTING
+#if defined TESTING || defined DEMO
   add_mock_events();
 #endif
 
 #ifdef APP_TESTING
-  while(1);
+  while(1)
+  {
+    bt_send('A');
+    uint32_t i;
+    for(i = 0; i < 10000; i++);
+  }
 #endif
 
   /* main control loop */
