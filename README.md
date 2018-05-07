@@ -24,7 +24,7 @@ ___
 * Bi-directional Bluetooth over serial connection
 ___
 
-### Target Features
+### Features
 
 ##### Package Damage Detection
 * Accelerometer-based fall and orientation change detection
@@ -36,3 +36,31 @@ ___
 ##### Bluetooth Communication with Android Application
 * Initial setup with acceleration thresholds
 * Dump event data to be interpreted by application
+___
+
+### Hardware Connections
+
+MSP432 Launchpad | HV-06
+---------------- | -----
+5V               | 5V
+GND              | GND
+P3.2             | Tx
+P3.3             | Rx
+
+MSP432 Launchpad | ADXL432
+---------------- | -------
+3.3V             | VCC
+GND              | GND
+P3.0             | CS
+P4.4             | INT1
+P4.5             | INT2
+P1.7             | SDO
+P1.6             | SDA
+P1.5             | SCL
+___
+
+### Build Instructions
+
+* Import source code into Code Composer Studio
+* Add inc/ as a path for include files
+* Build and debug using CCS
