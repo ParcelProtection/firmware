@@ -41,8 +41,9 @@
 /* functionality switches */
 #undef CRC_CHECK
 #undef AUTH_CHECK
-#define TESTING
-#undef DEMO
+#undef TESTING
+#undef APP_TESTING
+#define DEMO
 
 typedef enum
 {
@@ -68,9 +69,9 @@ uint8_t pkts_received = 0;
 
 void gpio_init()
 {
-  P4->SEL0 &= !(BIT5 | BIT4 | BIT0); /* GPIO mode */
-  P4->SEL1 &= !(BIT5 | BIT4 | BIT0);
-  P4->DIR &= !(BIT5 | BIT4 | BIT0); /* configure as inputs */
+  P4->SEL0 &= ~(BIT5 | BIT4 | BIT0); /* GPIO mode */
+  P4->SEL1 &= ~(BIT5 | BIT4 | BIT0);
+  P4->DIR &= ~(BIT5 | BIT4 | BIT0); /* configure as inputs */
   P4->REN |= BIT0; /* enable pullup/down resistor */
   P4->OUT |= BIT0; /* pullup resistor */
   P4->IES &= ~(BIT5 | BIT4); /* interrupt on low to high transition */
@@ -78,9 +79,9 @@ void gpio_init()
   P4->IE |= BIT4; /* enable interrupt generation */
 
 #ifdef TESTING
-  P1->SEL0 &= !(BIT4 | BIT1); /* GPIO mode */
-  P1->SEL1 &= !(BIT4 | BIT1);
-  P1->DIR &= !(BIT4 | BIT1); /* configure as inputs */
+  P1->SEL0 &= ~(BIT4 | BIT1); /* GPIO mode */
+  P1->SEL1 &= ~(BIT4 | BIT1);
+  P1->DIR &= ~(BIT4 | BIT1); /* configure as inputs */
   P1->REN |= BIT4 | BIT1; /* enable pullup/down resistor */
   P1->OUT |= BIT4 | BIT1; /* pullup resistor */
   P1->IES |= BIT4 | BIT1; /* interrupt on high to low transition */
@@ -108,6 +109,8 @@ void begin_tracking()
 {
   if(track_drops_f)
   {
+    spi_read(ADXL_INT_SOURCE); /* clear interrupts */
+    P4->IFG &= ~(BIT4);
     NVIC_EnableIRQ(PORT4_IRQn);
     __enable_interrupts();
   }
@@ -133,7 +136,7 @@ void send_status_pkt()
   pkt_t pkt;
   pkt.type = PKT_RES_STATUS;
   pkt.checksum = pkt.type;
-  pkt.pkt_len = sizeof(dev_status);
+  pkt.pkt_len = sizeof(res_status_t);
   pkt.checksum ^= pkt.pkt_len;
 
   res_status_t payload;
@@ -163,6 +166,7 @@ void send_dump_pkt(auth_e auth)
   uint8_t crc, data, pkt_len;
   uint32_t count, i, j;
   event_t event;
+  res_dump_t payload;
 
   /* send header */
   bt_send(PKT_RES_DUMP);
@@ -173,13 +177,14 @@ void send_dump_pkt(auth_e auth)
   bt_send(pkt_len);
   crc ^= pkt_len;
 
+  /* send payload */
   bt_send(package_id);
   crc ^= package_id;
-  bt_send(0x00);
-  bt_send(0x00);
-  bt_send(0x00);
+  bt_send(package_id >> 8);
+  crc ^= package_id >> 8;
   bt_send(count);
   crc ^= count;
+  bt_send(0x00);
 
   /* send events */
   for(i = 0; i < count; i++)
@@ -199,7 +204,7 @@ void send_dump_pkt(auth_e auth)
 
 /* Testing Functions */
 
-#ifdef TESTING
+#if defined TESTING | defined DEMO
 void add_mock_events()
 {
   rtc_t mock_time;
@@ -312,8 +317,10 @@ void PORT4_IRQHandler()
   if(P4->IFG & BIT4)
   {
     /* clear interrupt */
-    P4->IFG &= ~(BIT4);
+    uint32_t i;
+    for(i = 0; i < 10000; i++);
     spi_read(ADXL_INT_SOURCE);
+    P4->IFG &= ~(BIT4);
 
     if(track_drops_f) eb_new_event(ptr_event_buf, EVENT_DROP, 0);
   }
@@ -328,6 +335,11 @@ void EUSCIA2_IRQHandler()
   /* clear interrupt */
   EUSCI_A2->IFG &= ~EUSCI_A_IFG_RXIFG;
 
+#ifdef APP_TESTING
+  uint8_t data = EUSCI_A2->RXBUF;
+
+  bt_send(data);
+#else
   static uint8_t mid_pkt = 0, byte_count, payload_len;
 
   uint8_t data = EUSCI_A2->RXBUF;
@@ -353,6 +365,7 @@ void EUSCIA2_IRQHandler()
   {
     byte_count++;
   }
+#endif /* APP_TESTING */
 }
 
 
@@ -368,8 +381,17 @@ void main(void)
   gpio_init();
   adxl_init();
 
-#ifdef TESTING
+#if defined TESTING || defined DEMO
   add_mock_events();
+#endif
+
+#ifdef APP_TESTING
+  while(1)
+  {
+    bt_send('A');
+    uint32_t i;
+    for(i = 0; i < 10000; i++);
+  }
 #endif
 
   /* main control loop */
